@@ -10,9 +10,13 @@ CK Spelling allows users to create custom lists of words or phrases, listen to t
 *   **Multi-language Support:** Currently supports English (`en-US`) and Simplified Chinese (`zh-CN`).
 *   **Interactive Dictation Sessions:** 
     *   Automatically shuffles words for randomized testing.
-    *   Adjustable TTS speaking speed (0.25x to 1.5x).
+    *   Optimized TTS speaking speed (0.75x).
     *   Repeat buttons and hidden words during the session.
+    *   Improved audio reliability for modern web browsers.
     *   Final results reveal at the end of the session.
+*   **Fast Content Creation:** 
+    *   Streamlined "type-and-enter" word entry for rapid list building.
+    *   Automatic navigation to the edit screen after list creation.
 *   **Local Storage:** All data is saved securely in the browser using Hive.
 *   **Data Backup:** Export your lists to a `.json` file and import them back anytime, with options to append to or overwrite existing data.
 

@@ -128,7 +128,15 @@ class DashboardScreen extends StatelessWidget {
                         createdAt: DateTime.now(),
                       );
                       context.read<DictationProvider>().addList(newList);
-                      Navigator.pop(context);
+                      Navigator.pop(context); // Close dialog
+
+                      // Automatically navigate to the edit screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ListDetailsScreen(listId: newList.id),
+                        ),
+                      );
                     }
                   },
                   child: const Text('Create'),
