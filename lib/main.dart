@@ -10,12 +10,16 @@ import 'dictation_provider.dart';
 import 'dictation_list.dart';
 import 'list_details_screen.dart';
 import 'session_screen.dart';
+import 'tts_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();
   await Hive.openBox('dictation_box');
+
+  // Early initialization of TTS
+  await TtsService().ensureInitialized();
 
   final packageInfo = await PackageInfo.fromPlatform();
 

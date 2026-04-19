@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'dictation_item.dart';
 import 'dictation_list.dart';
+import 'tts_service.dart';
 
 class SessionScreen extends StatefulWidget {
   final DictationList list;
@@ -14,10 +14,11 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   late List<DictationItem> _shuffledItems;
-  late FlutterTts _flutterTts;
+  final TtsService _ttsService = TtsService();
+  late Future<void> _initTtsFuture;
 
   int _currentIndex = 0;
-  double _speechRate = 0.5;
+  double _speechRate = 0.75;
   bool _hasStarted = false;
   bool _isFinished = false;
 
@@ -26,32 +27,46 @@ class _SessionScreenState extends State<SessionScreen> {
     super.initState();
     // Create a copy of the list and shuffle it
     _shuffledItems = List.from(widget.list.items)..shuffle();
-    _initTts();
+    _initTtsFuture = _initTts();
   }
 
   Future<void> _initTts() async {
-    _flutterTts = FlutterTts();
-    await _flutterTts.setLanguage(widget.list.languageCode);
-    await _flutterTts.setSpeechRate(_speechRate);
+    await _ttsService.stop(); // Stop any pending speech from previous session
+    await _ttsService.ensureInitialized();
+    await _ttsService.flutterTts.setLanguage(widget.list.languageCode);
+    await _ttsService.flutterTts.setSpeechRate(_speechRate);
   }
 
   @override
   void dispose() {
-    _flutterTts.stop();
+    // Note: Don't stop it here if we want current word to finish, 
+    // but usually, popping means we want to be quiet.
+    _ttsService.stop(); 
     super.dispose();
   }
 
   Future<void> _speakCurrentItem() async {
     if (_currentIndex < _shuffledItems.length) {
-      await _flutterTts.speak(_shuffledItems[_currentIndex].text);
+      await _initTtsFuture; // Ensure TTS is ready before speaking
+      await _ttsService.speak(_shuffledItems[_currentIndex].text);
     }
   }
 
-  void _startSession() {
+  Future<void> _startSession() async {
+    // Warm up the TTS engine on the first user interaction (critical for Web)
+    await _initTtsFuture;
+    
+    // Some browsers need a non-empty string to truly unlock audio
+    // and a brief moment to stabilize after the first interaction.
+    await _ttsService.speak(' '); 
+    await Future.delayed(const Duration(milliseconds: 300)); // Slightly longer delay for stability
+
     setState(() {
       _hasStarted = true;
     });
-    _speakCurrentItem();
+    
+    // Trigger the first actual word
+    await _speakCurrentItem();
   }
 
   void _nextItem() {
@@ -65,29 +80,6 @@ class _SessionScreenState extends State<SessionScreen> {
         _isFinished = true;
       });
     }
-  }
-
-  Widget _buildSpeedSlider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Speaking Speed: ${_speechRate.toStringAsFixed(2)}x'),
-          Slider(
-            value: _speechRate,
-            min: 0.25,
-            max: 1.5,
-            divisions: 5, // 0.25, 0.5, 0.75, 1.0, 1.25, 1.5
-            label: '${_speechRate.toStringAsFixed(2)}x',
-            onChanged: (value) {
-              setState(() => _speechRate = value);
-              _flutterTts.setSpeechRate(_speechRate);
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -123,8 +115,6 @@ class _SessionScreenState extends State<SessionScreen> {
               textStyle: const TextStyle(fontSize: 18, inherit: false),
             ),
           ),
-          const SizedBox(height: 48),
-          _buildSpeedSlider(),
         ],
       );
     }
@@ -152,8 +142,6 @@ class _SessionScreenState extends State<SessionScreen> {
                 : 'Finish Session',
           ),
         ),
-        const SizedBox(height: 48),
-        _buildSpeedSlider(),
       ],
     );
   }
